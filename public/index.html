@@ -87,6 +87,10 @@
 
                 const data = await response.json();
 
+                if (data.error) {
+                    throw new Error(data.details || data.error);
+                }
+
                 document.getElementById('roastText').innerText = data.roast;
                 const container = document.getElementById('optionsContainer');
                 container.innerHTML = '';
