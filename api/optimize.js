@@ -1,8 +1,6 @@
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -16,6 +14,8 @@ module.exports = async (req, res) => {
   }
 
   try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
     const prompt = `
     You are a viral social media expert. 
     Analyze this bio: "${bio}"
@@ -24,21 +24,23 @@ module.exports = async (req, res) => {
     1. Give it a brutally honest 1-sentence roast rating (out of 10).
     2. Write 3 significantly better versions optimized for conversion and followers.
 
-    Output JSON format only:
+    Output STRICT JSON format only. Do not add markdown backticks.
+    Example structure:
     {
-      "roast": "Rating: X/10. [Roast here]",
+      "roast": "Rating: 2/10. Boring.",
       "options": ["Option 1", "Option 2", "Option 3"]
     }
     `;
 
-    const completion = await openai.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "gpt-3.5-turbo",
-      response_format: { type: "json_object" },
-    });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text();
+    
+    // Clean up if Gemini adds markdown code blocks
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-    const result = JSON.parse(completion.choices[0].message.content);
-    res.status(200).json(result);
+    const jsonResponse = JSON.parse(text);
+    res.status(200).json(jsonResponse);
 
   } catch (error) {
     console.error(error);
