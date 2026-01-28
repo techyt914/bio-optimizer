@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-001" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
 
     const prompt = `
     You are a viral social media expert. 
