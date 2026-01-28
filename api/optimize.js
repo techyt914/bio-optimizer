@@ -1,7 +1,3 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -13,9 +9,13 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Bio is required' });
   }
 
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+  const apiKey = process.env.GEMINI_API_KEY;
 
+  if (!apiKey) {
+    return res.status(500).json({ error: 'Server Error', details: 'Missing API Key' });
+  }
+
+  try {
     const prompt = `
     You are a viral social media expert. 
     Analyze this bio: "${bio}"
@@ -32,18 +32,38 @@ module.exports = async (req, res) => {
     }
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
+    // Direct fetch to Google API (No library)
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }]
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+
+    let text = data.candidates[0].content.parts[0].text;
     
-    // Clean up if Gemini adds markdown code blocks
+    // Clean up markdown
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
     const jsonResponse = JSON.parse(text);
     res.status(200).json(jsonResponse);
 
   } catch (error) {
-    console.error(error);
+    console.error("Gemini Error:", error);
     res.status(500).json({ error: 'AI Error', details: error.message });
   }
 };
