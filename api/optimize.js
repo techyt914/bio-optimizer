@@ -87,7 +87,7 @@ module.exports = async (req, res) => {
     const jsonResponse = JSON.parse(text);
     
     // Add a debug note so we know which model worked
-    jsonResponse.roast += ` (Model Used: ${chosenModel})`;
+    // jsonResponse.roast += ` (Model Used: ${chosenModel})`;
     
     res.status(200).json(jsonResponse);
 
